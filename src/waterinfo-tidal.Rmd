@@ -7,9 +7,7 @@ authors:
     twitter: SVanHoey
 date: 2018-12-20
 categories: blog
-output:
-  md_document:
-    variant: markdown_github
+output: github_document
 ---
 
 ## Introduction
@@ -39,7 +37,7 @@ eels <- read_csv("../data/eels.csv", col_types = cols())
 The eel tracking data contains the residence time intervals between the `Arrival` and `Departure` of an eel, supplied with a `Transmitter`, at a certain `Receiver` station. Each `Receiver` station does have a `latitude`, `longitude` and a `station` name:
 
 ```{r echo=FALSE}
-head(eels)
+head(eels) %>% knitr::kable()
 ```
 
 For each interval, the number of raw detections of the `Receiver` for each `Transmitter` is provided together with the derived `residencetime` of the `Transmitter`, i.e. the eel. As such, we can calculate the eels *favourite place to hang out* by calculating the total residence time around each receiver.
@@ -90,11 +88,10 @@ station_municipality <- station_municipality %>%
 ```
 
 ```{r echo=FALSE}
-head(eels)
+head(eels) %>% knitr::kable()
 ```
 
 ```{r echo=FALSE, fig.height=6, fig.width=6}
-# HIDE CELL
 ggplot(eels, aes(x = Arrival, xend = Departure, 
                  y = distance_to_refence_station, 
                  yend = distance_to_refence_station,
@@ -155,6 +152,7 @@ non_scheldt_stations <- c("Walem tij/Rupel", "Duffel-sluis tij", "Lier Molbrug t
                            "Waasmunster Manta tij/Durme", "Duffel Sluis tij/Nete", 
                            "Mechelen Stuw Afwaarts tij/Dijle")
 ts_id_tide <- ts_id_tide %>%
+    filter(ts_id < 100000000) %>% # hack to exclude unworking ids
     filter(!station_name %in% non_scheldt_stations) %>% # exclude non-scheldt stations
     filter(ts_name == "Pv.10")  # only the 10 min series
 ```
@@ -162,7 +160,7 @@ ts_id_tide <- ts_id_tide %>%
 The following list provides an overview of the time series identifiers of the relevant measurement stations along the Scheldt River with a 10 minute interval:
 
 ```{r echo=FALSE}
-head(ts_id_tide)
+head(ts_id_tide) %>% knitr::kable()
 ```
 
 Or shown on a map:
@@ -182,7 +180,6 @@ start_tracking_period <- min(eels$Date)
 end_tracking_period <- max(eels$Date)
 
 tidal_data <- ts_id_tide %>%
-    filter(ts_id < 100000000) %>% # hack to exclude unworking ids
     group_by(ts_id) %>%
     do(get_timeseries_tsid(.$ts_id,
                            from = start_tracking_period,
@@ -227,7 +224,7 @@ ts_id_high_tide <- read_csv("../data/scheldt_tide_waterinfo_identifiers.csv",
 For the Dendermonde station the high and low flow peaks are provided by the following time series:
 
 ```{r echo=FALSE}
-ts_id_high_tide
+ts_id_high_tide %>% knitr::kable()
 ```
 
 Which can be used again to download the data for a chosen period:
@@ -242,8 +239,9 @@ peaks_tide <- ts_id_high_tide %>% group_by(ts_id) %>%
     left_join(ts_id_high_tide, by = "ts_id") %>%
     select(Timestamp, Value, station_no, station_name) %>%
     rename(tide_value = Value)
-head(peaks_tide)
-```
+
+head(peaks_tide) %>% knitr::kable()
+``` 
 
 By rewrangling the data, we can translate this to tidal start and end periods:
 
@@ -253,7 +251,8 @@ tide_periods <- peaks_tide %>%
     mutate(tide_id = sort(rep(seq(1, nrow(peaks_tide)/2 + 1), 2))[1:nrow(peaks_tide)]) %>%
     select(Timestamp, tide_id, high_water) %>%
     spread(key = high_water, value = Timestamp)
-head(tide_periods)
+
+head(tide_periods) %>% knitr::kable()
 ```
 
 The derived periods can be used as a background color to highlight each period between low and high tide:
@@ -295,6 +294,7 @@ tidal_plot <- ggplot() +
              yend = max(eels$distance_to_refence_station) * 0.1, 
              arrow = arrow(length = unit(0.5, "cm")), color = "#2b8cbe") +
     theme_minimal()
+
 tidal_plot
 ```
 
