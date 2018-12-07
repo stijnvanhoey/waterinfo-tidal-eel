@@ -37,3 +37,4 @@ rsconnect/a
 
 # notebook
 .ipynb_checkpoints/
+.Rproj.user

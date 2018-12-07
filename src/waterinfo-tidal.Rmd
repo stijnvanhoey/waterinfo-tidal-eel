@@ -90,14 +90,10 @@ station_municipality <- station_municipality %>%
 ```
 
 ```{r echo=FALSE}
-options(repr.plot.width = 6, repr.plot.height = 6)
-```
-
-```{r echo=FALSE}
 head(eels)
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.height=6, fig.width=6}
 # HIDE CELL
 ggplot(eels, aes(x = Arrival, xend = Departure, 
                  y = distance_to_refence_station, 
@@ -204,11 +200,7 @@ In just a few lines R code, we downloaded for each of the tidal measurement stat
 
 The water level is expressed in meter TAW (or mTAW, meter above mean sea level). By combining `dplyr` and `ggplot2`, we can plot the data of the station in Dendermonde during November 2016:
 
-```{r echo=FALSE}
-options(repr.plot.width = 6, repr.plot.height = 3)
-```
-
-```{r}
+```{r, fig.height=3, fig.width=6}
 tidal_plot <- tidal_data %>% 
     filter(station_name %in% c("Dendermonde tij/Zeeschelde")) %>%
     filter(Timestamp > "2016-10-31", Timestamp <= "2016-11-30") %>%
@@ -266,7 +258,7 @@ head(tide_periods)
 
 The derived periods can be used as a background color to highlight each period between low and high tide:
 
-```{r}
+```{r, fig.height=3, fig.width=6}
 tidal_plot + geom_rect(data = tide_periods %>% filter(start > "2016-10-31", end <= "2016-11-30"), 
               aes(xmin = start, xmax = end, ymin = 0, ymax = Inf), 
               alpha = 0.15)
@@ -280,11 +272,7 @@ tidal_data <- tidal_data %>%
     filter(station_name != 'Hemiksem tij/Zeeschelde')  # exclude data from Hemiksem
 ```
 
-```{r echo=FALSE}
-options(repr.plot.width = 8, repr.plot.height = 6)
-```
-
-```{r echo=FALSE, warning=FALSE}
+```{r echo=FALSE, warning=FALSE, fig.height=6, fig.width=8}
 tidal_plot <- ggplot() +
     geom_segment(data = tidal_data %>% filter(Timestamp > "2016-10-31", 
                                               Timestamp <= "2016-11-30"), 
@@ -343,11 +331,7 @@ tide_periods_subset <- tide_periods %>%
 source('./plot_tidal_functions.R')
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-options(repr.plot.width = 6, repr.plot.height = 8)
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
 # combine the eel tracking data with the tidal data representation
 tidal_tracks <- plot_tidal_tracks(tidal_data_subset, eels_subset, 
                   tide_periods_subset, date_breaks = "5 days")
@@ -371,11 +355,7 @@ For a more scientific approach to check the selective tidal stream transport of 
 
 The previous figure inspired us to use the [ggridges package](https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html) to provide an alternative representation to the color intensity representation of the water levels. Instead, for each location the water level is plotted as function of time. Applying this for a small subset of the data makes the tidal behaviour of the eel even more clear:
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-options(repr.plot.width = 6, repr.plot.height = 3)
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=6}
 library(ggridges)
 ggridges_showcase(eels, tidal_data, station_municipality)
 ```
@@ -399,11 +379,7 @@ tide_periods_subset <- tide_periods %>%
            end <= end_moment)
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-options(repr.plot.width = 6, repr.plot.height = 8)
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
 # combine the eel tracking data with the tidal data representation
 tidal_tracks <- plot_tidal_tracks(tidal_data_subset, eels_subset, 
                   tide_periods_subset, date_breaks = "5 days")
@@ -423,7 +399,7 @@ ggarrange(tide_dendermonde, tidal_tracks,
 
 Actually, Greg is detected on the same location during high tide, but disappears for short periods during low tide. This indicates that Greg maybe exhibits the same pattern as Olivier after all. It could be that we are just missing the exact location of Greg during low tide periods because of the lack of a receiver at that particular location. In contrast to our [bird tracking data](https://www.gbif.org/dataset/83e20573-f7dd-4852-9159-21566e1e691e) we can not rely on a continous GPS logging for the fishtracking project, so we depend on the presence of receivers to actually measure the presence of the eel. 
 
-Nevertheless, by linking the eels tracking data with the tidal data, we get more insight to demistify the behaviour of these very interesting species. 
+By linking the eels tracking data with the tidal data, we get more insight to demistify the behaviour of these very interesting species. With the [wateRinfo](https://inbo.github.io/wateRinfo/) package, we hope to support researchers in answering a lot more questions.
 
 For the full code of this blogpost, check out [this repository](https://github.com/stijnvanhoey/wateRinfo_post).
 
