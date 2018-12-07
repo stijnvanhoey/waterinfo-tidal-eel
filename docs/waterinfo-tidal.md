@@ -57,7 +57,7 @@ Apparently, the eel carrying transmitter `A69-1601-52622` likes to be around the
 
 For the remainder of this post, let's give both eels a more compelling name than the Transmitter code their carrying. So the eel with transmitter `A69-1601-52622` is officially named **Greg** (the roots of the famous cyclist [Greg Van Aevermaet](https://en.wikipedia.org/wiki/Greg_Van_Avermaet) is in Hamme as well) and the eel with transmitter `A69-1601-52644` will be called **Olivier**.
 
-The map overview with total residence time lacks temporal information. We do not know *when* the eels were passing these receiever stations. Let's reconfigure adn plot the eel tracking data to see their route in the Scheldt river as function of time:
+The map overview with total residence time lacks temporal information. We do not know *when* the eels were passing these receiver stations. Let's reconfigure adn plot the eel tracking data to see their route in the Scheldt river as function of time:
 
 
 ```r
@@ -94,7 +94,7 @@ To represent the data along a straight line (y-axis), we calculated the distance
 
 ### Tidal data from Waterinfo
 
-[Waterinfo.be](http://waterinfo.be), managemed by the [Flemisch Environmental agency (VMM)](https://en.vmm.be/) and [Flanders Hydraulics Research (WL)](https://www.waterbouwkundiglaboratorium.be/en/home), is a great resource for a wide set of abiotic variables. The water height of the Scheldt river is among these variables, providing detailed information of [tidal behaviour](https://www.waterinfo.be/default.aspx?path=NL/Thema/Getij_Actueel). 
+[Waterinfo.be](http://waterinfo.be), managemed by the [Flemisch Environmental agency (VMM)](https://en.vmm.be/) and [Flanders Hydraulics Research (WL)](https://www.waterbouwkundiglaboratorium.be/en/home), is a great resource for a wide set of abiotic variables. The water height of the Scheldt river is among these variables, providing detailed information of [tidal conditions](https://www.waterinfo.be/default.aspx?path=NL/Thema/Getij_Actueel). 
 
 However, downloading the data from the website is both tedious (too much clicking) and not repeatable for future analysis. The goal of our [wateRinfo package](https://github.com/inbo/wateRinfo) is to facilitate access to the variety of data by providing an R interface to download time series data. We will use the package to access tidal/waterheight data.
 
