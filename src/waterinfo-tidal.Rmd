@@ -221,57 +221,6 @@ tidal_plot
 
 **Note:** TAW means [*Tweede Algemene Waterpassing*](https://nl.wikipedia.org/wiki/Tweede_Algemene_Waterpassing), a reference height for Belgium
 
-To highlight the periods of low and high tide in the figure, we want to define the moment of low and high water level peaks. We could do this by extracting the local maxima of the tidal time series or by assuming a regular interval, but these low and high water level peaks are also available as data source from waterinfo.be, using the `HWLW` keyword in the `ts_name` time serie name. So, similar to downloading the 10 minutes time series, we can download only the peaks using the wateRinfo package.
-
-```{r echo=FALSE}
-ts_id_high_tide <- read_csv("../data/scheldt_tide_waterinfo_identifiers.csv", 
-                            col_types = cols()) %>%
-    filter(grepl("Pv.HWLW", ts_name)) %>% # use HWLW based data
-    filter(station_name == "Dendermonde tij/Zeeschelde")
-```
-
-For the Dendermonde station the high and low flow peaks are provided by the following time series:
-
-```{r echo=FALSE}
-ts_id_high_tide %>% knitr::kable()
-```
-
-Which can be used again to download the data for a chosen period:
-
-```{r echo=TRUE}
-peaks_tide <- ts_id_high_tide %>% group_by(ts_id) %>%
-    do(get_timeseries_tsid(.$ts_id,
-                           from = min(eels$Date),
-                           to = max(eels$Date),
-                           datasource = 4)) %>%
-    ungroup() %>%
-    left_join(ts_id_high_tide, by = "ts_id") %>%
-    select(Timestamp, Value, station_no, station_name) %>%
-    rename(tide_value = Value)
-
-head(peaks_tide) %>% knitr::kable()
-``` 
-
-By rewrangling the data, we can translate this to tidal start and end periods:
-
-```{r}
-tide_periods <- peaks_tide %>%
-    mutate(high_water = if_else(tide_value > 3, "end", "start")) %>%
-    mutate(tide_id = sort(rep(seq(1, nrow(peaks_tide)/2 + 1), 2))[1:nrow(peaks_tide)]) %>%
-    select(Timestamp, tide_id, high_water) %>%
-    spread(key = high_water, value = Timestamp)
-
-head(tide_periods) %>% knitr::kable()
-```
-
-The derived periods can be used as a background color to highlight each period between low and high tide:
-
-```{r, fig.height=3, fig.width=8}
-tidal_plot + geom_rect(data = tide_periods %>% filter(start > "2016-10-31", end <= "2016-11-30"), 
-              aes(xmin = start, xmax = end, ymin = 0, ymax = Inf), 
-              alpha = 0.15)
-```
-
 As such, we have all the bits and pieces together to combine the tidal data set with the tracking data of Olivier during the second half of november 2016 and verify if Olivier is using the tide to move around.
 
 ## Is Olivier using the tide?
