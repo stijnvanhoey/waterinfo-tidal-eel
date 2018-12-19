@@ -99,7 +99,7 @@ y_axis_label <- paste0(
   as.character(round(station_municipality$distance_to_refence_station/1000)), 
   " km)")
 
-# Convert Arrival and Departure to indidivual rows (tidy)
+# convert Arrival and Departure to indidivual rows (tidy)
 eel_gather <- eel %>%
   gather(action, datetime, c(Arrival, Departure))
 
@@ -269,14 +269,17 @@ date_plot_sea <- tidal_data_subset %>%
     select(Timestamp) %>%
     pull() %>% median()
 
+# convert Arrival and Departure to indidivual rows (tidy)
 eels_gather <- eels_subset %>%
   gather(action, datetime, c(Arrival, Departure))
 
+# create custom y-ax labels by combing distance and name
 y_axis_label <- paste0(
   station_municipality$municipality, " (", 
   as.character(round(station_municipality$distance_to_refence_station/1000)), 
   " km)")
 
+# create the eel track combined with ggridges water level plot
 tidal_tracks <- ggplot() +
     geom_ridgeline(data = tidal_data_subset,
                    aes(x = Timestamp, y = distance_to_refence_station,
@@ -319,6 +322,7 @@ tide_dendermonde <- ggplot() +
           panel.grid.minor.y = element_blank(),
           panel.grid.minor.x = element_blank()) # remove x-label elements
 
+# combine both plots to single image
 ggarrange(tide_dendermonde, tidal_tracks,  
           ncol = 1, nrow = 2, common.legend = TRUE,
           align = "v", heights = c(1, 5))
