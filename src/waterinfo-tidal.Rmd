@@ -93,22 +93,28 @@ head(eel) %>% knitr::kable()
 
 ```{r echo=FALSE, fig.height=8, fig.width=10}
 
+# create custom y-ax labels by combing distance and name
 y_axis_label <- paste0(
   station_municipality$municipality, " (", 
   as.character(round(station_municipality$distance_to_refence_station/1000)), 
   " km)")
 
+# Convert Arrival and Departure to indidivual rows (tidy)
+eel_gather <- eel %>%
+  gather(action, datetime, c(Arrival, Departure))
+
+# calculate location to put the towards sea arrow
 date_plot_sea <- min(eel$Date) + (max(eel$Date) - min(eel$Date))/2
 
-ggplot(eel, aes(x = Arrival, xend = Departure, 
-                 y = distance_to_refence_station, 
-                 yend = distance_to_refence_station,
-                 color = eel_name)) +
-    geom_segment(size = 3) + xlab("") + ylab("") +
-    geom_line(aes(x = Arrival, y = distance_to_refence_station), size = 1) +
+ggplot(eel_gather, aes(x = datetime, 
+                       y = distance_to_refence_station,
+                       color = eel_name)) +
+    xlab("") + ylab("") +
+    geom_line(alpha = 1., color = "#e66101", 
+              linetype = "solid", size = 0.8) +
     scale_y_continuous("Municipalities along the Scheldt Estuary with\ndistance (km) to reference station at sea", 
                       breaks = station_municipality$distance_to_refence_station,
-                      labels = y_axis_label) +
+                      labels = y_axis_label) +  
     scale_color_manual(values = c("#e66101", "#5e3c99"), guide = guide_legend()) +
     annotate("text", x = as_datetime(date_plot_sea),
              y = max(eel$distance_to_refence_station) * 0.23, 
