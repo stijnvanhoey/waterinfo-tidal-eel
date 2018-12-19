@@ -5,6 +5,9 @@ authors:
   - name: Stijn Van Hoey
     url: https://orcid.org/0000-0001-6413-3185
     twitter: SVanHoey
+  - name: Peter Desmet
+    url: https://orcid.org/0000-0002-8442-8025
+    twitter: peterdesmet
 date: 2018-12-20
 categories: blog
 output: github_document
