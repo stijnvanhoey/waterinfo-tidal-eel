@@ -322,46 +322,9 @@ Using the ridges, for each location the water level is plotted as function of ti
 
 Looking at the graph, Buttercup seems to be *lazy* and following the tidal movement for a while before setting of to the sea. When the water comes inland from the sea (higher water levels), Buttercup follows the water upstream. When the water returns to the sea again to low tide, Buttercup moves again to the direction of the sea.
 
-For a more scientific approach to check the selective tidal stream transport of eel, check out the [scientific publication](https://www.sciencedirect.com/science/article/pii/S0272771418304530?via%3Dihub) by Pieter-Jan.
-
-## And what about Greg?
-
-So, Greg seemed to be much more resident on chosen locations. But what if we confront its tracks with the tidal data as well?
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-start_moment <- "2016-10-26"
-end_moment <- "2016-11-07"
-
-eels %>% filter(Departure >= start_moment, Arrival <= end_moment,
-                Transmitter == "A69-1601-52622") -> eels_subset
-tidal_data %>% filter(Timestamp >= start_moment, Timestamp <= end_moment) -> tidal_data_subset
-
-tide_periods_subset <- tide_periods %>% 
-    filter(start >= start_moment, 
-           end <= end_moment)
-```
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=8, fig.width=6}
-# combine the eel tracking data with the tidal data representation
-tidal_tracks <- plot_tidal_tracks(tidal_data_subset, eels_subset, 
-                  tide_periods_subset, date_breaks = "5 days")
-
-# create a water level plot of Dendermonde
-tide_dendermonde <- plot_tide_with_background(tidal_data_subset %>% filter(station_name == "Dendermonde tij/Zeeschelde"), 
-                                              tide_periods_subset, 
-                                              date_breaks = "5 days") +
-        theme(axis.title.x = element_blank(),
-              axis.text.x = element_blank(),
-              axis.ticks.x = element_blank()) # remove x-label elements
-
-ggarrange(tide_dendermonde, tidal_tracks,  
-          ncol = 1, nrow = 2, common.legend = TRUE,
-          align = "v", heights = c(1, 5))
-```
-
-Actually, Greg is detected on the same location during high tide, but disappears for short periods during low tide. This indicates that Greg maybe exhibits the same pattern as Buttercup after all. It could be that we are just missing the exact location of Greg during low tide periods because of the lack of a receiver at that particular location. In contrast to our [bird tracking data](https://www.gbif.org/dataset/83e20573-f7dd-4852-9159-21566e1e691e) we can not rely on a continous GPS logging for the fishtracking project, so we depend on the presence of receivers to actually measure the presence of the eel. 
-
 By linking the eels tracking data with the tidal data, we get more insight to demistify the behaviour of these very interesting species. With the [wateRinfo](https://inbo.github.io/wateRinfo/) package, we hope to support researchers in answering a lot more questions.
+
+For a more scientific approach to check the selective tidal stream transport of eel, check out the [scientific publication](https://www.sciencedirect.com/science/article/pii/S0272771418304530?via%3Dihub) by Pieter-Jan.
 
 For the full code of this blogpost, check out [this repository](https://github.com/stijnvanhoey/wateRinfo_post).
 
