@@ -221,9 +221,9 @@ tidal_plot
 
 **Note:** TAW means [*Tweede Algemene Waterpassing*](https://nl.wikipedia.org/wiki/Tweede_Algemene_Waterpassing), a reference height for Belgium
 
-As such, we have all the bits and pieces together to combine the tidal data set with the tracking data of Olivier during the second half of november 2016 and verify if Olivier is using the tide to move around.
+As such, we have all the bits and pieces together to combine the tidal data set with the tracking data of Buttercup during the second half of november 2016 and verify if Buttercup is using the tide to move around.
 
-## Is Olivier using the tide?
+## Is Buttercup using the tide?
 
 To represent the data of all the individual stations together with the tracks, we'll have to figure out an alternative way. One way to combine all tidal data in a single plot is to use its respective location in the Scheldt river and translate the water height in ridges instead of lines, as provided by the [`ggridges` package](https://cran.r-project.org/web/packages/ggridges/vignettes/gallery.html):
 
@@ -359,7 +359,7 @@ ggarrange(tide_dendermonde, tidal_tracks,
           align = "v", heights = c(1, 5))
 ```
 
-Actually, Greg is detected on the same location during high tide, but disappears for short periods during low tide. This indicates that Greg maybe exhibits the same pattern as Olivier after all. It could be that we are just missing the exact location of Greg during low tide periods because of the lack of a receiver at that particular location. In contrast to our [bird tracking data](https://www.gbif.org/dataset/83e20573-f7dd-4852-9159-21566e1e691e) we can not rely on a continous GPS logging for the fishtracking project, so we depend on the presence of receivers to actually measure the presence of the eel. 
+Actually, Greg is detected on the same location during high tide, but disappears for short periods during low tide. This indicates that Greg maybe exhibits the same pattern as Buttercup after all. It could be that we are just missing the exact location of Greg during low tide periods because of the lack of a receiver at that particular location. In contrast to our [bird tracking data](https://www.gbif.org/dataset/83e20573-f7dd-4852-9159-21566e1e691e) we can not rely on a continous GPS logging for the fishtracking project, so we depend on the presence of receivers to actually measure the presence of the eel. 
 
 By linking the eels tracking data with the tidal data, we get more insight to demistify the behaviour of these very interesting species. With the [wateRinfo](https://inbo.github.io/wateRinfo/) package, we hope to support researchers in answering a lot more questions.
 
