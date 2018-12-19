@@ -22,7 +22,7 @@ Pieter-Jan provided an interesting subset of the fish tracking data. In this blo
 
 ## Eel tracking data
 
-Let's start with the tracking data of the eels and check the favorite places of two of our tagged eels to hang out in the Scheldt estuary.
+Let's start with the tracking data of the eel and check the favorite places of our tagged eel to hang out in the Scheldt estuary.
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -31,64 +31,64 @@ library(leaflet)
 ```
 
 ```{r echo=FALSE}
-eels <- read_csv("../data/eels.csv", col_types = cols())
+eel <- read_csv("../data/eel_track_buttercup.csv", col_types = cols())
 ```
 
 The eel tracking data contains the residence time intervals between the `Arrival` and `Departure` of an eel, supplied with a `Transmitter`, at a certain `Receiver` station. Each `Receiver` station does have a `latitude`, `longitude` and a `station` name:
 
 ```{r echo=FALSE}
-head(eels) %>% knitr::kable()
+head(eel) %>% knitr::kable()
 ```
 
-For each interval, the number of raw detections of the `Receiver` for each `Transmitter` is provided together with the derived `residencetime` of the `Transmitter`, i.e. the eel. As such, we can calculate the eels *favourite place to hang out* by calculating the total residence time around each receiver.
+For each interval, the number of raw detections of the `Receiver` for each `Transmitter` is provided together with the derived `residencetime` of the `Transmitter`, i.e. the eel. As such, we can calculate the eel *favourite place to hang out* by calculating the total residence time around each receiver.
 
 On a map, this looks like:
 
 ```{r echo=FALSE}
-residence <- eels %>% 
+residence <- eel %>% 
     group_by(Receiver, latitude, longitude, Transmitter) %>%
     summarise(total_residence = sum(residencetime))
 ```
 
 ```{r echo=FALSE}
-tag_colors <- colorFactor(c("#e66101", "#5e3c99"), eels$Transmitter)
+#tag_colors <- colorFactor(c("#e66101", "#5e3c99"), eels$Transmitter)
 
 m <- leaflet(data = residence, width = 600, height = 400) %>%
   addTiles() %>%  
-  addCircleMarkers(~longitude, ~latitude, popup = ~Receiver, fillColor = ~tag_colors(Transmitter),
-                   radius = ~total_residence/3600, stroke = FALSE, fillOpacity = 0.6) %>%
-  addLegend(values = ~Transmitter, pal = tag_colors)
+  addCircleMarkers(~longitude, ~latitude, popup = ~Receiver, color = "#e66101",
+                   radius = ~total_residence/3600, stroke = FALSE, fillOpacity = 0.6)
 m
 ```
 
-Apparently, the eel carrying transmitter `A69-1601-52622` likes to be around the municipality Hamme and a section between the municipalities Wetteren and Wichelen, whereas eel `A69-1601-52644` prefers to swim around different sections of the Scheldt river.
+Apparently, the eel carrying transmitter `A69-1601-52622` likes to be around the municipality Hamme and a section between the municipalities Wetteren and Wichelen.
 
-For the remainder of this post, let's give both eels a more compelling name than the Transmitter code their carrying. So the eel with transmitter `A69-1601-52622` is officially named **Greg** (the roots of the famous cyclist [Greg Van Aevermaet](https://en.wikipedia.org/wiki/Greg_Van_Avermaet) is in Hamme as well) and the eel with transmitter `A69-1601-52644` will be called **Olivier**.
+For the remainder of this post, let's give a more compelling name than the Transmitter code she is carrying. So, the eel with transmitter `A69-1601-52622` is officially named **Buttercup**.
 
-The map overview with total residence time lacks temporal information. We do not know *when* the eels were passing these receiver stations. Let's reconfigure adn plot the eel tracking data to see their route in the Scheldt river as function of time:
+The map overview with total residence time lacks temporal information. We do not know *when* the eel are passing these receiver stations. Let's reconfigure adn plot the eel tracking data to see their route in the Scheldt river as function of time:
 
 ```{r}
-eels <- eels %>%
+eel <- eel %>%
     mutate(eel_name = recode(Transmitter, 
-                             `A69-1601-52622` = "Greg", 
-                             `A69-1601-52644` = "Olivier"))
+                             `A69-1601-52644` = "Buttercup"))
 ```
 
 ```{r echo=FALSE}
 distance_from_sea <- read_csv("../data/distance_from_sea.csv", col_types = cols())
-eels <- eels %>%
+eel <- eel %>%
     left_join(distance_from_sea, by = "station")
 ```
 
 ```{r echo=FALSE}
 station_municipality <- read_csv("../data/link_station_municipality.csv", col_types = cols())
 station_municipality <- station_municipality %>% 
-    left_join(eels %>% select(station, distance_to_refence_station) %>% 
-              distinct(), by = "station")
+    left_join(eel %>% select(station, distance_to_refence_station) %>% 
+              distinct(), by = "station") %>%
+  add_row(municipality = "reference station" , 
+          distance_to_refence_station = 0)
 ```
 
 ```{r echo=FALSE}
-head(eels) %>% knitr::kable()
+head(eel) %>% knitr::kable()
 ```
 
 ```{r echo=FALSE, fig.height=8, fig.width=10}
@@ -98,24 +98,26 @@ y_axis_label <- paste0(
   as.character(round(station_municipality$distance_to_refence_station/1000)), 
   " km)")
 
-ggplot(eels, aes(x = Arrival, xend = Departure, 
+date_plot_sea <- min(eel$Date) + (max(eel$Date) - min(eel$Date))/2
+
+ggplot(eel, aes(x = Arrival, xend = Departure, 
                  y = distance_to_refence_station, 
                  yend = distance_to_refence_station,
                  color = eel_name)) +
     geom_segment(size = 3) + xlab("") + ylab("") +
-    geom_line(data = eels, aes(x = Arrival, y = distance_to_refence_station), 
-              alpha = 0.7, size = 0.8) +
-    scale_y_continuous("Municipalities next to Scheldt river", 
+    geom_line(aes(x = Arrival, y = distance_to_refence_station), size = 1) +
+    scale_y_continuous("Municipalities along the Scheldt Estuary with\ndistance (km) to reference station at sea", 
                       breaks = station_municipality$distance_to_refence_station,
                       labels = y_axis_label) +
     scale_color_manual(values = c("#e66101", "#5e3c99"), guide = guide_legend()) +
-    annotate("text", x = as_datetime("2016-11-01"),
-             y = max(eels$distance_to_refence_station) * 0.22, 
-             colour = "#2b8cbe", label = "Sea") +
-    annotate("segment", x = as_datetime("2016-11-01"), xend = as_datetime("2016-11-01"),
-             y = max(eels$distance_to_refence_station) * 0.2, 
-             yend = max(eels$distance_to_refence_station) * 0.1, 
-                 arrow = arrow(length = unit(0.5, "cm")), color = "#2b8cbe") +
+    annotate("text", x = as_datetime(date_plot_sea),
+             y = max(eel$distance_to_refence_station) * 0.23, 
+             colour = "#2b8cbe", label = "Sea", size = 5) +
+    annotate("segment", x = as_datetime(date_plot_sea), xend = as_datetime(date_plot_sea),
+             y = max(eel$distance_to_refence_station) * 0.2, 
+             yend = max(eel$distance_to_refence_station) * 0.1, 
+             arrow = arrow(length = unit(0.5, "cm")), 
+             color = "#2b8cbe", size = 0.8) +
     theme_minimal() +
     theme(legend.position = c(.98, .99),
           legend.justification = c("right", "top"),
@@ -123,15 +125,14 @@ ggplot(eels, aes(x = Arrival, xend = Departure,
           legend.margin = margin(6, 6, 6, 6),
           legend.background =  element_rect(fill = "white", color = "transparent"),
           panel.grid.minor.y = element_blank(),
-          panel.grid.minor.x = element_blank()) +
+          panel.grid.minor.x = element_blank(),
+          axis.text = element_text(size = 10)) +
     guides(color = guide_legend(title = "Eel"))
 ```
 
-For both eel, we picked up the signal around Ghent/Merelbeke and they resided for a while in the Scheldt river before migration towards the sea. Once left, they start their long journey towards the Sargasso Sea. However, both eel clearly seem to behave differently while moving towards the sea. 
+We picked up the signal around Ghent/Merelbeke and Buttercup resided for a while in the Scheldt river before migration towards the sea. Once left, they start their long journey towards the Sargasso Sea. 
 
-Similar to the map representation, Greg is residential for longer periods on a few specific places, whereas Olivier travels around much more along the river section between Temse and Merelbeke. 
-
-The periodic movement pattern of Olivier during the second half of november 2016 is of particular interest, as it looks like a tidal frequency. It would be interesting to compare the movement pattern with real water level data from the Scheldt river...  that's what the [wateRinfo](https://inbo.github.io/wateRinfo/) package is all about.
+The periodic movement pattern of Buttercup during the second half of november 2016 is of particular interest, as it looks like a tidal frequency. It would be interesting to compare the movement pattern with real water level data from the Scheldt river...  that's what the [wateRinfo](https://inbo.github.io/wateRinfo/) package is all about.
 
 **Note:**
 To represent the data along a straight line (y-axis), we calculated the distances from each station to a reference station close to the sea (`ws-DL7`) . We used a `costDistance` function to derive the distances along the Scheldt river. Interested? See [the code repository](https://github.com/stijnvanhoey/wateRinfo_post) for more the details on the derivation.
@@ -148,7 +149,7 @@ For installation instructions, see [the package documentation](https://inbo.gith
 library(wateRinfo)
 ```
 
-As water levels in the Scheldt river are not among their core supported variables, we use the tidal stations overview as currently discussed on the wateRinfo [GitHub issues](https://github.com/inbo/wateRinfo/issues/11#issuecomment-442901628). This list of station identifiers is precompiled to derive all tidal VMM station timeseries:
+As water levels in the Scheldt river are not among their core supported variables, we use the tidal stations overview as currently discussed on the wateRinfo [GitHub issues](https://github.com/inbo/wateRinfo/issues/11#issuecomment-442901628). This list of station identifiers is precompiled to derive all tidal VMM/WL station timeseries:
 
 ```{r echo=FALSE}
 ts_id_tide <- read_csv("../data/scheldt_tide_waterinfo_identifiers.csv", col_types = cols())
@@ -184,8 +185,8 @@ m
 [This vignette](https://inbo.github.io/wateRinfo/articles/download_timeseries_batch.html) of the wateRinfo package provides the example code to download the data for multiple stations at once using the `tidyverse verbs`. We use a similar approach, but instead of manually providing the start (`from`) and end (`to`) data, we get these from the eels tracking data period:
 
 ```{r}
-start_tracking_period <- min(eels$Date)
-end_tracking_period <- max(eels$Date)
+start_tracking_period <- min(eel$Date)
+end_tracking_period <- max(eel$Date)
 
 tidal_data <- ts_id_tide %>%
     group_by(ts_id) %>%
@@ -198,14 +199,14 @@ tidal_data <- ts_id_tide %>%
 ```
 
 ```{r echo=FALSE}
-#tidal_data <- read_csv("../files/tidal_data.csv", col_types = cols())
+#tidal_data <- read_csv("../data/tidal_data.csv", col_types = cols())
 ```
 
 In just a few lines R code, we downloaded for each of the tidal measurement stations the data for the required time period. Make sure to check out the other tutorials as well on the [wateRinfo package website](https://inbo.github.io/wateRinfo/index.html).
 
 The water level is expressed in meter TAW (or mTAW, meter above mean sea level). By combining `dplyr` and `ggplot2`, we can plot the data of the station in Dendermonde during November 2016:
 
-```{r, fig.height=3, fig.width=6}
+```{r, fig.height=3, fig.width=8}
 tidal_plot <- tidal_data %>% 
     filter(station_name %in% c("Dendermonde tij/Zeeschelde")) %>%
     filter(Timestamp > "2016-10-31", Timestamp <= "2016-11-30") %>%
@@ -271,8 +272,13 @@ tidal_plot + geom_rect(data = tide_periods %>% filter(start > "2016-10-31", end 
               alpha = 0.15)
 ```
 
-Still, to represent the data of all the individual stations together with the tracks, we'll have to figure out an alternative way. One way to combine all tidal data in a single plot is to use its respective location in the Scheldt river and translate the water height in color intensity instead of lines, resulting in a 
-```{r}
+As such, we have all the bits and pieces together to combine the tidal data set with the tracking data of Olivier during the second half of november 2016 and verify if Olivier is using the tide to move around.
+
+## Is Olivier using the tide?
+
+To represent the data of all the individual stations together with the tracks, we'll have to figure out an alternative way. One way to combine all tidal data in a single plot is to use its respective location in the Scheldt river and translate the water height in ridges instead of lines, as provided by the [`ggridges` package](https://cran.r-project.org/web/packages/ggridges/vignettes/gallery.html):
+
+```{r message=FALSE, warning=FALSE}
 library(ggridges)
 ```
 
@@ -282,39 +288,7 @@ tidal_data <- tidal_data %>%
     filter(station_name != 'Hemiksem tij/Zeeschelde')  # exclude data from Hemiksem
 ```
 
-```{r echo=FALSE, warning=FALSE, fig.height=6, fig.width=8}
-tidal_plot <- ggplot() +
-    geom_ridgeline(data = tidal_data %>% filter(Timestamp > "2016-10-31", 
-                                              Timestamp <= "2016-11-30"),
-                   aes(x = Timestamp, y = distance_to_refence_station,
-                       height = Value, group = distance_to_refence_station),
-                   scale = 1000, fill = "#9ecae1", color = "#2b8cbe") + 
-    scale_color_distiller("Water height", type = "seq", 
-                          palette = "Blues", direction = 1) +
-    xlab("") + ylab("") +
-    scale_y_continuous("Municipalities along the Scheldt Estuary", 
-                       breaks = station_municipality$distance_to_refence_station,
-                       labels = station_municipality$municipality) +
-    annotate("text", x = as_datetime("2016-11-14"),
-             y = max(eels$distance_to_refence_station) * 0.23, 
-             colour = "#2b8cbe", label = "Sea") +
-    annotate("segment", x = as_datetime("2016-11-14"), 
-             xend = as_datetime("2016-11-14"),
-             y = max(eels$distance_to_refence_station) * 0.2, 
-             yend = max(eels$distance_to_refence_station) * 0.1, 
-             arrow = arrow(length = unit(0.5, "cm")), color = "#2b8cbe") +
-    theme_minimal()
-
-tidal_plot
-```
-
-Each horizontal blue-shaded line is a time series downloaded from waterinfo.be and the color intensity represents the water level as function of time. 
-
-As such, we have all the bits and pieces together to combine the tidal data set with the tracking data of Olivier during the second half of november 2016 and verify if Olivier is using the tide to move around.
-
-## Is Olivier using the tide?
-
-By extending the previous plot with the tracking data of Olivier, we can verify the eel movement pattern and the possible link with the water level data:
+By extending the plot of the tracking data of Buttercup with the water levels measured in tidal measurement statsions, we can verify the eel movement pattern and the possible link with the water level data:
 
 ```{r echo=FALSE, warning=FALSE}
 start_moment <- "2016-11-14"
@@ -323,7 +297,7 @@ transmitter_selected <- "A69-1601-52644"
 ```
 
 ```{r echo=FALSE, warning=FALSE}
-eels_subset <- eels %>% 
+eels_subset <- eel %>% 
     filter(Departure >= start_moment, Arrival <= end_moment, 
            Transmitter == transmitter_selected)
 
@@ -332,12 +306,9 @@ tidal_data_subset <- tidal_data %>%
            Timestamp <= end_moment)
 ```
 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-source('./plot_tidal_functions.R')
-```
-
 ```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=8, fig.width=10}
+library(ggpubr)
+
 # combine the eel tracking data with the tidal data representation
 date_plot_sea <- tidal_data_subset %>%
     select(Timestamp) %>%
@@ -398,18 +369,11 @@ ggarrange(tide_dendermonde, tidal_tracks,
           align = "v", heights = c(1, 5))
 ```
 
-Looking at the graph, Olivier seems to be *lazy* and following the tidal movement for a while before setting of to the sea. When the water comes inland from the sea (higher water levels), the eel follows the water upstream. When the water returns to the sea again to low tide, the eel moves again to the direction of the sea.
+Using the ridges, for each location the water level is plotted as function of time at that specific location.
+
+Looking at the graph, Buttercup seems to be *lazy* and following the tidal movement for a while before setting of to the sea. When the water comes inland from the sea (higher water levels), Buttercup follows the water upstream. When the water returns to the sea again to low tide, Buttercup moves again to the direction of the sea.
 
 For a more scientific approach to check the selective tidal stream transport of eel, check out the [scientific publication](https://www.sciencedirect.com/science/article/pii/S0272771418304530?via%3Dihub) by Pieter-Jan.
-
-The previous figure inspired us to use the [ggridges package](https://cran.r-project.org/web/packages/ggridges/vignettes/introduction.html) to provide an alternative representation to the color intensity representation of the water levels. Instead, for each location the water level is plotted as function of time. Applying this for a small subset of the data makes the tidal behaviour of the eel even more clear:
-
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=3, fig.width=6}
-library(ggridges)
-ggridges_showcase(eels, tidal_data, station_municipality)
-```
-
-During high tide Olivier likes to be in Dendermonde (more upstream), whereas during low tide, moving downstream to Sint-Amands.
 
 ## And what about Greg?
 
@@ -454,6 +418,6 @@ For the full code of this blogpost, check out [this repository](https://github.c
 
 **Acknowledgements:**
 
-Thanks Greg and Olivier for being our study objects and hopefully you had a save journey towards the sargasso sea. Thanks to Pieter-Jan Verhelst for the providing the data. 
+Thanks Buttercup for being our study objects and hopefully you had a save journey towards the sargasso sea. Thanks to Pieter-Jan Verhelst for the providing the data. 
 
 We also would like to thank [Laura DeCicco](https://github.com/ldecicco-USGS) for reviewing the wateRinfo package as well as the editor [Karthik Ram](https://github.com/karthik).
