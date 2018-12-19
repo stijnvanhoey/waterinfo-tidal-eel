@@ -31,7 +31,7 @@ library(leaflet)
 ```
 
 ```{r echo=FALSE}
-eel <- read_csv("../data/eel_track_buttercup.csv", col_types = cols())
+eel <- read_csv("../data/eel_track.csv", col_types = cols())
 ```
 
 The eel tracking data contains the residence time intervals between the `Arrival` and `Departure` of an eel, supplied with a `Transmitter`, at a certain `Receiver` station. Each `Receiver` station does have a `latitude`, `longitude` and a `station` name:
