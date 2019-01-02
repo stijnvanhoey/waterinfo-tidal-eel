@@ -22,6 +22,7 @@ output:
   md_document:
     preserve_yaml: true
     variant: markdown_github
+always_allow_html: yes
 knit: (function(input_file, encoding) {
   rmarkdown::render(input_file, encoding = encoding, output_dir = "../docs") })
 ---
