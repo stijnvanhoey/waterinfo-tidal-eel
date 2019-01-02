@@ -1,5 +1,5 @@
 ---
-slug: "waterinfo-onboarding"
+slug: "waterinfo-tidal-eel"
 title: Use wateRinfo package to understand eel behaviour in the Scheldt river
 authors:
   - name: Stijn Van Hoey
@@ -8,9 +8,17 @@ authors:
   - name: Peter Desmet
     url: https://orcid.org/0000-0002-8442-8025
     twitter: peterdesmet
-date: 2018-12-20
+date: 2019-01-15
 categories: blog
 output: github_document
+tags:
+  - software-peer-review
+  - r
+  - package
+  - water
+  - tides
+  - data-access
+  - fishes
 ---
 
 ## Introduction
