@@ -1,4 +1,4 @@
-Date,Transmitter,Receiver,latitude,longitude,station,Arrival,Departure,Detections,residencetime
+date,transmitter,receiver,latitude,longitude,station,arrival,departure,detections,residencetime
 2016-10-19,A69-1601-52644,VR2W-112297,51.00164,3.85695,s-Wetteren,2016-10-19T23:44:00Z,2016-10-19T23:48:00Z,4,240
 2016-10-19,A69-1601-52644,VR2W-112287,51.00588,3.77876,s-2,2016-10-19T16:07:00Z,2016-10-19T19:12:00Z,54,11100
 2016-10-20,A69-1601-52644,VR2W-122322,51.02032,3.96965,s-2a,2016-10-20T13:18:00Z,2016-10-20T13:23:00Z,3,300
