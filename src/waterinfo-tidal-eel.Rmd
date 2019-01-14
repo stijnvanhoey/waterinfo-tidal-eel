@@ -252,115 +252,141 @@ tidal_data %>%
     theme_minimal() + ylab("Water level (mTAW)") + xlab("")
 ```
 
-## Is Buttercup using the tide?
 We now have all the pieces to verify if Princess Buttercup _was_ surfing the tide back and forth.
 
-To represent the data of all the individual stations together with the tracks, we'll have to figure out an alternative way. One way to combine all tidal data in a single plot is to use its respective location in the Scheldt river and translate the water height in ridges instead of lines, as provided by the [`ggridges` package](https://cran.r-project.org/web/packages/ggridges/vignettes/gallery.html):
+### Is Princess Buttercup surfing the tide?
 
-```{r message=FALSE, warning=FALSE}
-library(ggridges)
+Let's add the tidal data to Princess Buttercup's journey plot we created before. The first step is to join the tidal data with the same distance reference file to know the distance from each tidal station to the sea:
+
+```{r echo = TRUE}
+tidal_data <-
+  tidal_data %>%
+  left_join(
+    distance_from_sea %>% select(station, distance_from_sea, municipality),
+    by = c("station_name" = "station")
+  ) %>%
+  filter(station_name != "Hemiksem tij/Zeeschelde") # Exclude (probably erroneous) data from Hemiksem
 ```
 
-```{r echo=FALSE}
-tidal_data <- tidal_data %>%
-    left_join(distance_from_sea, by = c("station_name" = "station")) %>%
-    filter(station_name != 'Hemiksem tij/Zeeschelde')  # exclude data from Hemiksem
-```
+To avoid visual clutter, we'll use ridges (from [`ggridges`](https://cran.r-project.org/web/packages/ggridges/vignettes/gallery.html)) to display the tidal data for each station over time:
 
-By extending the plot of the tracking data of Buttercup with the water levels measured in tidal measurement statsions, we can verify the eel movement pattern and the possible link with the water level data:
-
-```{r echo=FALSE, warning=FALSE}
+```{r}
 start_moment <- "2016-11-14"
 end_moment <- "2016-11-22 12:00"
 transmitter_selected <- "A69-1601-52644"
+
+eel_subset <-
+  eel %>% 
+  filter(departure >= start_moment, arrival <= end_moment)
+
+tidal_data_subset <-
+  tidal_data %>% 
+  filter(Timestamp >= start_moment, Timestamp <= end_moment)
 ```
 
-```{r echo=FALSE, warning=FALSE}
-eels_subset <- eel %>% 
-    filter(Departure >= start_moment, Arrival <= end_moment, 
-           Transmitter == transmitter_selected)
+```{r plot_combined, fig.height=8, fig.width=10}
+# Create custom y-axis labels by combining distance and name
+# y_axis_label: reused from previous plot
 
-tidal_data_subset <- tidal_data %>% 
-    filter(Timestamp >= start_moment, 
-           Timestamp <= end_moment)
-```
+# Get midpoint date (for positioning arrow to sea)
+midpoint_date <-
+  tidal_data_subset %>%
+  select(Timestamp) %>%
+  pull() %>%
+  median()
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=8, fig.width=10}
-library(ggpubr)
-
-# combine the eel tracking data with the tidal data representation
-date_plot_sea <- tidal_data_subset %>%
-    select(Timestamp) %>%
-    pull() %>% median()
-
-# convert Arrival and Departure to indidivual rows (tidy)
-eels_gather <- eels_subset %>%
-  gather(action, datetime, c(Arrival, Departure))
-
-# create custom y-ax labels by combing distance and name
-y_axis_label <- paste0(
-  station_municipality$municipality, " (", 
-  as.character(round(station_municipality$distance_to_refence_station/1000)), 
-  " km)")
-
-# create the eel track combined with ggridges water level plot
-tidal_tracks <- ggplot() +
-    geom_ridgeline(data = tidal_data_subset,
-                   aes(x = Timestamp, y = distance_to_refence_station,
-                       height = Value, group = distance_to_refence_station),
-                   scale = 1000, fill = "#9ecae1", color = "#2b8cbe") +
-    geom_line(data = eels_gather, aes(x = datetime,
-                                      y = distance_to_refence_station),
-              alpha = 1., color = "#e66101", linetype = "solid", size = 1) +
-    scale_x_datetime(date_labels = "%d %b",
-                     date_breaks = "1 days") +
-    theme_minimal() +
-    xlab("") + ylab("") +
-    scale_y_continuous("Municipalities along the Scheldt Estuary with\ndistance (km) to reference station at sea",
-                       breaks = station_municipality$distance_to_refence_station,
-                       labels = y_axis_label) +
-    annotate("text", x = as_datetime(date_plot_sea),
-             y = max(eels_subset$distance_to_refence_station) * 0.23,
-             colour = "#2b8cbe", label = "Sea", size = 5) +
-    annotate("segment", x = as_datetime(date_plot_sea), xend = as_datetime(date_plot_sea),
-             y = max(eels_subset$distance_to_refence_station) * 0.2,
-             yend = max(eels_subset$distance_to_refence_station) * 0.1,
-             arrow = arrow(length = unit(0.5, "cm")), color = "#2b8cbe",
-             size = 0.8) +
-    theme(panel.grid.minor.y = element_blank(),
-          panel.grid.minor.x = element_blank(),
-          axis.text = element_text(size = 10))
-
-# create a water level plot of Dendermonde
-tide_dendermonde <- ggplot() +
-    geom_line(data = tidal_data_subset %>% filter(station_name == "Dendermonde tij/Zeeschelde"),
-              aes(x = Timestamp, y = Value),
-              size = 1, color = "#2b8cbe") +
-    scale_x_datetime(date_labels = "%d %b",
-                     date_breaks = "1 days") +
-    theme_minimal() +
-    ylab("Water level\nDendermonde\n(m TAW)") +
-    theme(axis.title.x = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          panel.grid.minor.y = element_blank(),
-          panel.grid.minor.x = element_blank()) # remove x-label elements
-
-# combine both plots to single image
-ggarrange(tide_dendermonde, tidal_tracks,  
-          ncol = 1, nrow = 2, common.legend = TRUE,
-          align = "v", heights = c(1, 5))
-```
-
-Using the ridges, for each location the water level is plotted as function of time at that specific location.
-
-Looking at the graph, Buttercup seems to be *lazy* and following the tidal movement for a while before setting of to the sea. When the water comes inland from the sea (higher water levels), Buttercup follows the water upstream. When the water returns to the sea again to low tide, Buttercup moves again to the direction of the sea.
+# Convert arrival and departure to individual rows (tidy)
+eel_gather <-
+  eel_subset %>%
+  gather(action, datetime, c(arrival, departure))
 
 By linking the eels tracking data with the tidal data, we get more insight to demistify the behaviour of these very interesting species. With the [wateRinfo](https://inbo.github.io/wateRinfo/) package, we hope to support researchers in answering a lot more questions.
+# Create plot combining eel track with ggridges water levels
+tidal_tracks <-
+  ggplot() +
+  geom_ridgeline(
+    data = tidal_data_subset,
+    aes(x = Timestamp, y = distance_from_sea, height = Value, group = distance_from_sea),
+    scale = 1000,
+    fill = "#9ecae1",
+    color = "#2b8cbe"
+  ) +
+  geom_line(
+    data = eel_gather,
+    aes(x = datetime, y = distance_from_sea),
+    alpha = 1.,
+    color = "#e66101",
+    linetype = "solid",
+    size = 1
+  ) +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 days") +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(
+    "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
+    breaks = municipalities$distance_from_sea,
+    labels = y_axis_label
+  ) +
+  annotate(
+    "text",
+    x = as_datetime(midpoint_date),
+    y = max(eel_subset$distance_from_sea) * 0.23,
+    colour = "#2b8cbe",
+    label = "Sea",
+    size = 5
+  ) +
+  annotate(
+    "segment",
+    x = as_datetime(midpoint_date),
+    xend = as_datetime(midpoint_date),
+    y = max(eel_subset$distance_from_sea) * 0.2,
+    yend = max(eel_subset$distance_from_sea) * 0.1,
+    arrow = arrow(length = unit(0.5, "cm")),
+    color = "#2b8cbe",
+    size = 0.8
+  ) +
+  theme_minimal() + 
+  theme(
+    panel.grid.minor.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text = element_text(size = 10)
+  )
 
 For a more scientific approach to check the selective tidal stream transport of eel, check out the [scientific publication](https://www.sciencedirect.com/science/article/pii/S0272771418304530?via%3Dihub) by Pieter-Jan.
+# Create water level plot of Dendermonde
+tide_dendermonde <-
+  ggplot() +
+  geom_line(
+    data = tidal_data_subset %>% filter(station_name == "Dendermonde tij/Zeeschelde"),
+    aes(x = Timestamp, y = Value),
+    size = 1,
+    color = "#2b8cbe"
+  ) +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 days") +
+  ylab("Water level\nDendermonde\n(m TAW)") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.minor.x = element_blank() # Remove x-label elements
+  )
+
+# Combine both plots to single image
+ggarrange(
+  tide_dendermonde,
+  tidal_tracks,  
+  ncol = 1,
+  nrow = 2,
+  common.legend = TRUE,
+  align = "v",
+  heights = c(1, 5)
+)
+```
 
 For the full code of this blogpost, check out [this repository](https://github.com/stijnvanhoey/wateRinfo_post).
+Looking at the plot, Princess Buttercup seems to be "lazy" and drift with the tide. Rising water levels push her upstream, while decreasing water levels bring her closer to sea again. On November 22 (see also previous plot), she embarks on her migration for real.
 
 **Acknowledgements:**
 
