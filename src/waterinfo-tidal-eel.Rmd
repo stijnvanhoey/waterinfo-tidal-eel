@@ -71,7 +71,7 @@ head(eel)
 
 Using the `latitude`, `longitude` and total `residencetime` for each station, we can map where Princess Buttercup likes to hang out:
 
-```{r residence_map}
+```{r map_residence_time}
 eel %>% 
   group_by(receiver, receiver, latitude, longitude, transmitter) %>%
   summarize(total_residence = sum(residencetime)) %>%
@@ -241,7 +241,7 @@ The water level is expressed in `mTAW`[^3] (meter above mean sea level). Let's p
 
 [^3]: TAW means [_Tweede Algemene Waterpassing_](https://nl.wikipedia.org/wiki/Tweede_Algemene_Waterpassing), a reference height for Belgium.
 
-```{r plot_dendermonde, fig.height=3, fig.width=8}
+```{r plot_tide_dendermonde, fig.height=3, fig.width=8}
 tidal_data %>% 
   filter(station_name %in% c("Dendermonde tij/Zeeschelde")) %>%
   filter(Timestamp > "2016-10-31", Timestamp <= "2016-11-30") %>%
@@ -284,7 +284,7 @@ tidal_data_subset <-
   filter(Timestamp >= start_moment, Timestamp <= end_moment)
 ```
 
-```{r plot_combined, fig.height=8, fig.width=10}
+```{r plot_track_and_tide, fig.height=8, fig.width=10}
 # Create custom y-axis labels by combining distance and name
 # y_axis_label: reused from previous plot
 
