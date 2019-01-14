@@ -1,4 +1,4 @@
-ts_value_id,datetime,req_timestamp,station_latitude,station_longitude,station_id,station_no,station_name,dataprovider,dataowner,significant,Portal_Bekken,station_no_short,ts_id,ts_name,parametertype_name,stationparameter_name
+ts_value_id,datetime,req_timestamp,station_latitude,station_longitude,station_id,station_no,station_name,dataprovider,dataowner,significant,portal_bekken,station_no_short,ts_id,ts_name,parametertype_name,stationparameter_name
 1,2018-11-29T16:30:00.000+01:00,NA,51.0526375700243,4.19721684620378,0430087,04zes42a-1066,Sint-Amands tij/Zeeschelde,MOW-HIC,HIC,0,Beneden-Scheldebekken,zes42a-1066,94251010,AlarmStatus.O,W,W
 1,2018-11-29T16:30:00.000+01:00,NA,51.0526375700243,4.19721684620378,0430087,04zes42a-1066,Sint-Amands tij/Zeeschelde,MOW-HIC,HIC,0,Beneden-Scheldebekken,zes42a-1066,55429010,Pv.HW,W,W
 1,2018-11-29T16:30:00.000+01:00,NA,51.0526375700243,4.19721684620378,0430087,04zes42a-1066,Sint-Amands tij/Zeeschelde,MOW-HIC,HIC,0,Beneden-Scheldebekken,zes42a-1066,55431010,Base.Lang,W,W
