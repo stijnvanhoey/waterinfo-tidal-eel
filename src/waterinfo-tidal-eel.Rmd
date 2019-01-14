@@ -46,11 +46,6 @@ European eels ([_Anguilla anguilla_](https://en.wikipedia.org/wiki/Anguilla_angu
 
 In this blog post, we'll explore if the migration of one eel is influenced by the tide. It's a research use case for our R package [wateRinfo](https://ropensci.github.io/wateRinfo/), which was recently [peer reviewed](https://github.com/ropensci/software-review/issues/255) (thanks to reviewer [Laura DeCicco](https://github.com/ldecicco-USGS) and editor [Karthik Ram](https://github.com/karthik) for their constructive feedback!) and accepted as a community-contributed package to [rOpenSci](https://github.com/ropensci/wateRinfo).
 
-## Eel tracking data
-
-Let's start with the tracking data of the eel and check the favorite places of our tagged eel to hang out in the Scheldt estuary.
-
-```{r message=FALSE, warning=FALSE}
 ```{r}
 library(tidyverse)
 library(lubridate)
@@ -60,39 +55,34 @@ library(ggridges)
 library(ggpubr)
 ```
 
-```{r echo=FALSE}
-eel <- read_csv("../data/eel_track.csv", col_types = cols())
+### Meet Princess Buttercup
+
+Pieterjan provided us the [tracking data](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/data/eel_track.csv) for eel with transmitter `A69-1601-52622`. Let's call her **Princess Buttercup**, after the princess that almost got eaten by the Shrieking Eels in the classic and immensly quotable movie [The Princess Bride](https://www.imdb.com/title/tt0093779/quotes/).
+
+```{r echo = TRUE}
+eel <- read_csv(here("data", "eel_track.csv"))
 ```
 
-The eel tracking data contains the residence time intervals between the `Arrival` and `Departure` of an eel, supplied with a `Transmitter`, at a certain `Receiver` station. Each `Receiver` station does have a `latitude`, `longitude` and a `station` name:
+Her tracking data consists of the residence time interval (`arrival` until `departure`) at each `receiver` station that detected her along the [Scheldt](https://en.wikipedia.org/wiki/Scheldt) river. It also contains the number of `detections` and calculated `residencetime` (in seconds), as well as the `station` name, `latitude` and `longitude`.
 
-```{r echo=FALSE}
-head(eel) %>% knitr::kable()
+```{r}
+head(eel)
 ```
 
-For each interval, the number of raw detections of the `Receiver` for each `Transmitter` is provided together with the derived `residencetime` of the `Transmitter`, i.e. the eel. As such, we can calculate the eel *favourite place to hang out* by calculating the total residence time around each receiver.
+Using the `latitude`, `longitude` and total `residencetime` for each station, we can map where Princess Buttercup likes to hang out:
 
-On a map, this looks like:
-
-```{r echo=FALSE}
-residence <- eel %>% 
-    group_by(Receiver, latitude, longitude, Transmitter) %>%
-    summarise(total_residence = sum(residencetime))
-```
-
-```{r echo=FALSE}
-#tag_colors <- colorFactor(c("#e66101", "#5e3c99"), eels$Transmitter)
-
-m <- leaflet(data = residence, width = 600, height = 400) %>%
+```{r residence_map}
+eel %>% 
+  group_by(receiver, receiver, latitude, longitude, transmitter) %>%
+  summarize(total_residence = sum(residencetime)) %>%
+  leaflet(width = 600, height = 400) %>%
   addTiles() %>%  
-  addCircleMarkers(~longitude, ~latitude, popup = ~Receiver, color = "#e66101",
-                   radius = ~total_residence/3600, stroke = FALSE, fillOpacity = 0.6)
-m
+  addCircleMarkers(~longitude, ~latitude,
+                   popup = ~receiver,
+                   color = "#e66101", radius = ~total_residence/3600, 
+                   stroke = FALSE, fillOpacity = 0.6)
 ```
 
-Apparently, the eel carrying transmitter `A69-1601-52622` likes to be around the municipality Hamme and a section between the municipalities Wetteren and Wichelen.
-
-For the remainder of this post, let's give a more compelling name than the Transmitter code she is carrying. So, the eel with transmitter `A69-1601-52622` is officially named **Buttercup**.
 
 The map overview with total residence time lacks temporal information. We do not know *when* the eel are passing these receiver stations. Let's reconfigure adn plot the eel tracking data to see their route in the Scheldt river as function of time:
 
