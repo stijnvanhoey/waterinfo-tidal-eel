@@ -1,6 +1,6 @@
 ---
 slug: "waterinfo-tidal-eel"
-title: Use wateRinfo package to understand eel behaviour in the Scheldt river
+title: wateRinfo - Downloading tidal data to understand the behaviour of a migrating eel
 authors:
   - name: Stijn Van Hoey
     url: https://orcid.org/0000-0001-6413-3185
@@ -15,11 +15,16 @@ tags:
   - r
   - package
   - water
-  - tides
   - data-access
+  - tidal-data
   - fishes
+  - movement-data
+  - acoustic-telemetry
 output:
+  html_document:
+    df_print: kable
   md_document:
+    df_print: kable
     preserve_yaml: true
     variant: markdown_github
 always_allow_html: yes
