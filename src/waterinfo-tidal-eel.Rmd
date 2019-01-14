@@ -51,9 +51,13 @@ In this blog post, we'll explore if the migration of one eel is influenced by th
 Let's start with the tracking data of the eel and check the favorite places of our tagged eel to hang out in the Scheldt estuary.
 
 ```{r message=FALSE, warning=FALSE}
+```{r}
 library(tidyverse)
 library(lubridate)
+library(here)
 library(leaflet)
+library(ggridges)
+library(ggpubr)
 ```
 
 ```{r echo=FALSE}
