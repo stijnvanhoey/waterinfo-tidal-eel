@@ -21,8 +21,8 @@ tags:
   - movement-data
   - acoustic-telemetry
 output:
-  html_document:
-    df_print: kable
+#  html_document:
+#    df_print: kable
   md_document:
     df_print: kable
     preserve_yaml: true
