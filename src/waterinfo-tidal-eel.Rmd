@@ -83,85 +83,97 @@ eel %>%
                    stroke = FALSE, fillOpacity = 0.6)
 ```
 
+### Moving up and down the Scheldt river
 
-The map overview with total residence time lacks temporal information. We do not know *when* the eel are passing these receiver stations. Let's reconfigure adn plot the eel tracking data to see their route in the Scheldt river as function of time:
+To get a better sense of her journey along the river, we add a `distance_to_sea` (in meters) for the stations, by joining the tracking data with a [distance reference file](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/data/distance_from_sea.csv)[^1]. We can now plot her movement over time and distance:
+
+[^1]: To represent the data along a straight line (y-axis), we calculated the distance along the river from each station to a reference station close to the sea (`ws-DL7`), using a `costDistance` function. See [this script](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/src/stations_distances.ipynb) for more the details on the calculation.
 
 ```{r}
-eel <- eel %>%
-    mutate(eel_name = recode(Transmitter, 
-                             `A69-1601-52644` = "Buttercup"))
+# Load reference file
+distance_from_sea <- read_csv(here("data", "distance_from_sea.csv"))
+
+# Join with tracking data
+eel <-
+  eel %>%
+  left_join(distance_from_sea %>% select(station, distance_from_sea, municipality), on = "station")
+
+# Create df with municipalities + distance (to be used for labels later)
+municipalities <-
+  distance_from_sea %>%
+  mutate(municipality = case_when(
+    !is.na(municipality) ~ municipality,
+    station == "ws-DL7" ~ "Reference station"
+  )) %>%
+  filter(!is.na(municipality)) %>%
+  select(station, municipality, distance_from_sea) %>%
+  arrange(distance_from_sea)
 ```
 
-```{r echo=FALSE}
-distance_from_sea <- read_csv("../data/distance_from_sea.csv", col_types = cols())
-eel <- eel %>%
-    left_join(distance_from_sea, by = "station")
-```
-
-```{r echo=FALSE}
-station_municipality <- read_csv("../data/link_station_municipality.csv", col_types = cols())
-station_municipality <- station_municipality %>% 
-    left_join(eel %>% select(station, distance_to_refence_station) %>% 
-              distinct(), by = "station") %>%
-  add_row(municipality = "reference station" , 
-          distance_to_refence_station = 0)
-```
-
-```{r echo=FALSE}
-head(eel) %>% knitr::kable()
-```
-
-```{r echo=FALSE, fig.height=8, fig.width=10}
-
-# create custom y-ax labels by combing distance and name
+```{r plot_track, fig.height = 8, fig.width = 10}
+# Create custom y-axis labels by combining distance and name
 y_axis_label <- paste0(
-  station_municipality$municipality, " (", 
-  as.character(round(station_municipality$distance_to_refence_station/1000)), 
-  " km)")
+  municipalities$municipality,
+  " (",
+  as.character(round(municipalities$distance_from_sea/1000)), 
+  " km)"
+)
 
-# convert Arrival and Departure to indidivual rows (tidy)
-eel_gather <- eel %>%
-  gather(action, datetime, c(Arrival, Departure))
+# Get midpoint date (for positioning arrow to sea)
+midpoint_date <- min(eel$date) + (max(eel$date) - min(eel$date))/2
 
-# calculate location to put the towards sea arrow
-date_plot_sea <- min(eel$Date) + (max(eel$Date) - min(eel$Date))/2
+# Convert arrival and departure to individual rows (tidy)
+eel_gather <-
+  eel %>%
+  gather(action, datetime, c(arrival, departure))
 
-ggplot(eel_gather, aes(x = datetime, 
-                       y = distance_to_refence_station,
-                       color = eel_name)) +
-    xlab("") + ylab("") +
-    geom_line(alpha = 1., color = "#e66101", 
-              linetype = "solid", size = 0.8) +
-    scale_y_continuous("Municipalities along the Scheldt Estuary with\ndistance (km) to reference station at sea", 
-                      breaks = station_municipality$distance_to_refence_station,
-                      labels = y_axis_label) +  
-    scale_color_manual(values = c("#e66101", "#5e3c99"), guide = guide_legend()) +
-    annotate("text", x = as_datetime(date_plot_sea),
-             y = max(eel$distance_to_refence_station) * 0.23, 
-             colour = "#2b8cbe", label = "Sea", size = 5) +
-    annotate("segment", x = as_datetime(date_plot_sea), xend = as_datetime(date_plot_sea),
-             y = max(eel$distance_to_refence_station) * 0.2, 
-             yend = max(eel$distance_to_refence_station) * 0.1, 
-             arrow = arrow(length = unit(0.5, "cm")), 
-             color = "#2b8cbe", size = 0.8) +
-    theme_minimal() +
-    theme(legend.position = c(.98, .99),
-          legend.justification = c("right", "top"),
-          legend.box.just = "right",
-          legend.margin = margin(6, 6, 6, 6),
-          legend.background =  element_rect(fill = "white", color = "transparent"),
-          panel.grid.minor.y = element_blank(),
-          panel.grid.minor.x = element_blank(),
-          axis.text = element_text(size = 10)) +
-    guides(color = guide_legend(title = "Eel"))
+# Create plot
+ggplot(eel_gather,
+  aes(x = datetime, y = distance_from_sea, color = eel_name)) +
+  xlab("") +
+  ylab("") +
+  geom_line(alpha = 1., color = "#e66101", linetype = "solid", size = 0.8) +
+  scale_y_continuous(
+    "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
+    breaks = municipalities$distance_from_sea,
+    labels = y_axis_label
+  ) +
+  scale_color_manual(values = c("#e66101", "#5e3c99"), guide = guide_legend()) +
+  annotate(
+    "text",
+    x = as_datetime(midpoint_date),
+    y = max(eel$distance_from_sea) * 0.23,
+    colour = "#2b8cbe",
+    label = "Sea",
+    size = 5
+  ) +
+  annotate(
+    "segment",
+    x = as_datetime(midpoint_date),
+    xend = as_datetime(midpoint_date),
+    y = max(eel$distance_from_sea) * 0.2,
+    yend = max(eel$distance_from_sea) * 0.1, 
+    arrow = arrow(length = unit(0.5, "cm")),
+    color = "#2b8cbe",
+    size = 0.8
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(.98, .99),
+    legend.justification = c("right", "top"),
+    legend.box.just = "right",
+    legend.margin = margin(6, 6, 6, 6),
+    legend.background = element_rect(fill = "white", color = "transparent"),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text = element_text(size = 10)
+  ) +
+  guides(color = guide_legend(title = "Eel"))
 ```
 
-We picked up the signal around Ghent/Merelbeke and Buttercup resided for a while in the Scheldt river before migration towards the sea. Once left, they start their long journey towards the Sargasso Sea. 
+Princess Buttercup's signal was picked up by receivers in Merelbeke (near Ghent) shortly after she was captured and released there on October 11. She resided in a 40 km stretch of the river (between Wetteren and Sint-Amands) for about a month before migrating towards the sea and starting the long journey towards the Sargasso Sea. The periodic movement pattern up and down the river during the second half of November is of particular interest: it looks like tidal frequency[^2]. It would be interesting to compare the movement pattern with real water level data from the Scheldt river... which is where our wateRinfo package comes in.
 
-The periodic movement pattern of Buttercup during the second half of november 2016 is of particular interest, as it looks like a tidal frequency. It would be interesting to compare the movement pattern with real water level data from the Scheldt river...  that's what the [wateRinfo](https://inbo.github.io/wateRinfo/) package is all about.
-
-**Note:**
-To represent the data along a straight line (y-axis), we calculated the distances from each station to a reference station close to the sea (`ws-DL7`) . We used a `costDistance` function to derive the distances along the Scheldt river. Interested? See [the code repository](https://github.com/stijnvanhoey/wateRinfo_post) for more the details on the derivation.
+[^2]: The Scheldt is under tidal influence from its river mouth all the way to Ghent (160km upstream) where it is stopped by sluices. The tide goes much further than the freshwater-saltwater boundary of the river. 
 
 ### Tidal data from Waterinfo
 
