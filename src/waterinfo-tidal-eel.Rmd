@@ -300,7 +300,6 @@ eel_gather <-
   eel_subset %>%
   gather(action, datetime, c(arrival, departure))
 
-By linking the eels tracking data with the tidal data, we get more insight to demistify the behaviour of these very interesting species. With the [wateRinfo](https://inbo.github.io/wateRinfo/) package, we hope to support researchers in answering a lot more questions.
 # Create plot combining eel track with ggridges water levels
 tidal_tracks <-
   ggplot() +
@@ -352,7 +351,6 @@ tidal_tracks <-
     axis.text = element_text(size = 10)
   )
 
-For a more scientific approach to check the selective tidal stream transport of eel, check out the [scientific publication](https://www.sciencedirect.com/science/article/pii/S0272771418304530?via%3Dihub) by Pieter-Jan.
 # Create water level plot of Dendermonde
 tide_dendermonde <-
   ggplot() +
@@ -385,11 +383,12 @@ ggarrange(
 )
 ```
 
-For the full code of this blogpost, check out [this repository](https://github.com/stijnvanhoey/wateRinfo_post).
 Looking at the plot, Princess Buttercup seems to be "lazy" and drift with the tide. Rising water levels push her upstream, while decreasing water levels bring her closer to sea again. On November 22 (see also previous plot), she embarks on her migration for real.
 
-**Acknowledgements:**
+## Conclusion
 
-Thanks Buttercup for being our study objects and hopefully you had a save journey towards the sargasso sea. Thanks to Pieter-Jan Verhelst for the providing the data. 
+In this blogpost we used the wateRinfo package to gain some insight in the movement/migration behaviour of an individual eel. We hope the package can support many more research questions and that you [have fun storming the castle](https://www.imdb.com/title/tt0093779/quotes/qt0482745).
 
-We also would like to thank [Laura DeCicco](https://github.com/ldecicco-USGS) for reviewing the wateRinfo package as well as the editor [Karthik Ram](https://github.com/karthik).
+- For a more in depth study of eel migration behaviour in response to the tide, see [Verhelst et al. (2018)](https://doi.org/10.1016/j.ecss.2018.08.025).
+- For more info on the package, see [the package website](https://ropensci.github.io/wateRinfo/).
+- For the full code of this blogpost, see [this repository](https://github.com/stijnvanhoey/waterinfo-tidal-eel).
