@@ -1,0 +1,394 @@
+---
+slug: "waterinfo-tidal-eel"
+title: wateRinfo - Downloading tidal data to understand the behaviour of a migrating eel
+authors:
+  - name: Stijn Van Hoey
+    url: https://orcid.org/0000-0001-6413-3185
+    twitter: SVanHoey
+  - name: Peter Desmet
+    url: https://orcid.org/0000-0002-8442-8025
+    twitter: peterdesmet
+date: 2019-01-15
+categories: blog
+tags:
+  - software-peer-review
+  - r
+  - package
+  - water
+  - data-access
+  - tidal-data
+  - fishes
+  - movement-data
+  - acoustic-telemetry
+output:
+#  html_document:
+#    df_print: kable
+  md_document:
+    df_print: kable
+    preserve_yaml: true
+    variant: markdown_github
+always_allow_html: yes
+knit: (function(input_file, encoding) {
+  rmarkdown::render(input_file, encoding = encoding, output_dir = "../docs") })
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+> Do you know what that sound is, Highness? Those are the Shrieking Eels — if you don't believe me, just wait. They always grow louder when they're about to feed on human flesh. If you swim back now, I promise, no harm will come to you. I doubt you will get such an offer from the Eels.
+> 
+> _Vizzini, [The Princess Bride](https://youtu.be/KGcat9tGZVU)_
+
+European eels ([_Anguilla anguilla_](https://en.wikipedia.org/wiki/Anguilla_anguilla)) have it tough. Not only are they depicted as monsters in movies, they are [critically endangered](https://doi.org/10.2305/IUCN.UK.2014-1.RLTS.T60344A45833138.en) in real life. One of the many aspects that is contributing to their decline is the reduced connectivity between their freshwater and marine habitats. Eels are catadromous: they live in freshwater, but migrate to the Sargasso Sea to spawn, a route that is blocked by numerous human structures (shipping locks, sluices, pumping stations, etc.). [Pieterjan Verhelst](http://www.marinebiology.ugent.be/node/68491) studies the impact of these structures on the behaviour of eels, making use of the [fish acoustic receiver network](http://lifewatch.be/en/fish-acoustic-receiver-network) that was established as part of the Belgian LifeWatch observatory. This animated video gives a quick introduction to his research and the receiver network:
+
+[![Tagging research on eel in Belgium](https://img.youtube.com/vi/7YQVgl3QPyY/0.jpg)](https://www.youtube.com/watch?v=7YQVgl3QPyY)
+
+In this blog post, we'll explore if the migration of one eel is influenced by the tide. It's a research use case for our R package [wateRinfo](https://ropensci.github.io/wateRinfo/), which was recently [peer reviewed](https://github.com/ropensci/software-review/issues/255) (thanks to reviewer [Laura DeCicco](https://github.com/ldecicco-USGS) and editor [Karthik Ram](https://github.com/karthik) for their constructive feedback!) and accepted as a community-contributed package to [rOpenSci](https://github.com/ropensci/wateRinfo).
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(here)
+library(leaflet)
+library(ggridges)
+library(ggpubr)
+```
+
+### Meet Princess Buttercup
+
+Pieterjan provided us the [tracking data](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/data/eel_track.csv) for eel with transmitter `A69-1601-52622`. Let's call her **Princess Buttercup**, after the princess that almost got eaten by the Shrieking Eels in the classic and immensly quotable movie [The Princess Bride](https://www.imdb.com/title/tt0093779/quotes/).
+
+```{r echo = TRUE}
+eel <- read_csv(here("data", "eel_track.csv"))
+```
+
+Her tracking data consists of the residence time interval (`arrival` until `departure`) at each `receiver` station that detected her along the [Scheldt](https://en.wikipedia.org/wiki/Scheldt) river. It also contains the number of `detections` and calculated `residencetime` (in seconds), as well as the `station` name, `latitude` and `longitude`.
+
+```{r}
+head(eel)
+```
+
+Using the `latitude`, `longitude` and total `residencetime` for each station, we can map where Princess Buttercup likes to hang out:
+
+```{r map_residence_time}
+eel %>% 
+  group_by(receiver, receiver, latitude, longitude, transmitter) %>%
+  summarize(total_residence = sum(residencetime)) %>%
+  leaflet(width = 600, height = 400) %>%
+  addTiles() %>%  
+  addCircleMarkers(~longitude, ~latitude,
+                   popup = ~receiver,
+                   color = "#e66101", radius = ~total_residence/3600, 
+                   stroke = FALSE, fillOpacity = 0.6)
+```
+
+### Moving up and down the Scheldt river
+
+To get a better sense of her journey along the river, we add a `distance_to_sea` (in meters) for the stations, by joining the tracking data with a [distance reference file](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/data/distance_from_sea.csv)[^1]. We can now plot her movement over time and distance:
+
+[^1]: To represent the data along a straight line (y-axis), we calculated the distance along the river from each station to a reference station close to the sea (`ws-DL7`), using a `costDistance` function. See [this script](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/src/stations_distances.ipynb) for more the details on the calculation.
+
+```{r}
+# Load reference file
+distance_from_sea <- read_csv(here("data", "distance_from_sea.csv"))
+
+# Join with tracking data
+eel <-
+  eel %>%
+  left_join(distance_from_sea %>% select(station, distance_from_sea, municipality), on = "station")
+
+# Create df with municipalities + distance (to be used for labels later)
+municipalities <-
+  distance_from_sea %>%
+  mutate(municipality = case_when(
+    !is.na(municipality) ~ municipality,
+    station == "ws-DL7" ~ "Reference station"
+  )) %>%
+  filter(!is.na(municipality)) %>%
+  select(station, municipality, distance_from_sea) %>%
+  arrange(distance_from_sea)
+```
+
+```{r plot_track, fig.height = 8, fig.width = 10}
+# Create custom y-axis labels by combining distance and name
+y_axis_label <- paste0(
+  municipalities$municipality,
+  " (",
+  as.character(round(municipalities$distance_from_sea/1000)), 
+  " km)"
+)
+
+# Get midpoint date (for positioning arrow to sea)
+midpoint_date <- min(eel$date) + (max(eel$date) - min(eel$date))/2
+
+# Convert arrival and departure to individual rows (tidy)
+eel_gather <-
+  eel %>%
+  gather(action, datetime, c(arrival, departure))
+
+# Create plot
+ggplot(eel_gather,
+  aes(x = datetime, y = distance_from_sea, color = eel_name)) +
+  xlab("") +
+  ylab("") +
+  geom_line(alpha = 1., color = "#e66101", linetype = "solid", size = 0.8) +
+  scale_y_continuous(
+    "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
+    breaks = municipalities$distance_from_sea,
+    labels = y_axis_label
+  ) +
+  scale_color_manual(values = c("#e66101", "#5e3c99"), guide = guide_legend()) +
+  annotate(
+    "text",
+    x = as_datetime(midpoint_date),
+    y = max(eel$distance_from_sea) * 0.23,
+    colour = "#2b8cbe",
+    label = "Sea",
+    size = 5
+  ) +
+  annotate(
+    "segment",
+    x = as_datetime(midpoint_date),
+    xend = as_datetime(midpoint_date),
+    y = max(eel$distance_from_sea) * 0.2,
+    yend = max(eel$distance_from_sea) * 0.1, 
+    arrow = arrow(length = unit(0.5, "cm")),
+    color = "#2b8cbe",
+    size = 0.8
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(.98, .99),
+    legend.justification = c("right", "top"),
+    legend.box.just = "right",
+    legend.margin = margin(6, 6, 6, 6),
+    legend.background = element_rect(fill = "white", color = "transparent"),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text = element_text(size = 10)
+  ) +
+  guides(color = guide_legend(title = "Eel"))
+```
+
+Princess Buttercup's signal was picked up by receivers in Merelbeke (near Ghent) shortly after she was captured and released there on October 11. She resided in a 40 km stretch of the river (between Wetteren and Sint-Amands) for about a month before migrating towards the sea and starting the long journey towards the Sargasso Sea. The periodic movement pattern up and down the river during the second half of November is of particular interest: it looks like tidal frequency[^2]. It would be interesting to compare the movement pattern with real water level data from the Scheldt river... which is where our wateRinfo package comes in.
+
+[^2]: The Scheldt is under tidal influence from its river mouth all the way to Ghent (160km upstream) where it is stopped by sluices. The tide goes much further than the freshwater-saltwater boundary of the river. 
+
+### Getting tidal data with the wateRinfo package
+
+[Waterinfo.be](http://waterinfo.be), managed by the [Flanders Environment Agency (VMM)](https://en.vmm.be/) and [Flanders Hydraulics Research](https://www.waterbouwkundiglaboratorium.be), is a website where one can find real-time water and weather related environmental variables for Flanders (Belgium), such as rainfall, air pressure, discharge, and water level. The website also provides an [API](https://www.waterinfo.be/download/9f5ee0c9-dafa-46de-958b-7cac46eb8c23?dl=0) to download time series of these measurements as open data, but compositing the download URL with the proper system codes can be challenging. To facilitate users in searching for stations and variables, subsequently downloading data of interest and incorporating waterinfo.be data access in repeatable workflows, we developed the R package [wateRinfo](https://github.com/ropensci/wateRinfo) to do just that. See the [package documentation](https://ropensci.github.io/wateRinfo/) for more information on how to install and get started with the package.
+
+Timeseries in waterinfo.be (identified by a `ts_id`) are a combination of a variable, location (`station_id`) and measurement frequency (15min by default). For example:
+
+```{r echo = TRUE}
+library(wateRinfo)
+get_stations("water_level") %>%
+  head()
+```
+
+At the time of writing (see [this issue](https://github.com/ropensci/wateRinfo/issues/11)), the stations measuring [water levels in the Scheldt tidal zone](https://www.waterinfo.be/default.aspx?path=NL/Thema/Getij_Actueel) are not yet included by the API under the core variable `water_level` and are thus not yet available via `get_stations("water_level")`. We therefore rely on a [precompiled list of tidal time series identifiers](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/data/tidal_zone_ts_ids.csv) (`tidal_zone_ts_ids`):
+
+```{r echo = TRUE}
+tidal_zone_ts_ids <- read_csv(here("data", "tidal_zone_ts_ids.csv"))
+```
+
+From which we select the 10-min frequency tidal timeseries in the Scheldt river:
+
+```{r}
+non_scheldt_stations <- c(
+  "Walem tij/Rupel", "Duffel-sluis tij", "Lier Molbrug tij/Nete",
+  "Kessel tij/Grote Nete", "Emblem tij/Kleine Nete",
+  "Mechelen Benedensluis tij/Dijle", "Mechelen Stuw Opwaarts tij/Dijle",
+  "Hombeek tij/Zenne", "Zemst tij/Zenne", "Gentbrugge tij/Zeeschelde",
+  "Waasmunster Manta tij/Durme", "Duffel Sluis tij/Nete", 
+  "Mechelen Stuw Afwaarts tij/Dijle"
+)
+
+tidal_zone_ts_ids <-
+  tidal_zone_ts_ids %>%
+  filter(ts_id < 100000000) %>% # Exclude non-working ids
+  filter(!station_name %in% non_scheldt_stations) %>% # Exclude non-scheldt stations
+  filter(ts_name == "Pv.10") # Only included the 10-min series
+
+tidal_zone_ts_ids %>%
+  select(ts_id, station_id, station_name, portal_bekken)
+```
+
+[This wateRinfo vignette](https://ropensci.github.io/wateRinfo/articles/download_timeseries_batch.html) shows how to download data for multiple stations at once using `wateRinfo` and [`dplyr`](https://dplyr.tidyverse.org/). We use a similar approach, but instead of manually providing the start and end date, we get these from Princess Buttercup's tracking data:
+
+```{r echo = TRUE}
+tidal_data <-
+  tidal_zone_ts_ids %>%
+  group_by(ts_id) %>%
+  
+  # Download tidal data for each ts_id (time series id)
+  do(get_timeseries_tsid(
+      .$ts_id,
+      from = min(eel$date), # Start of eel tracking data
+      to = max(eel$date),   # End of eel tracking data
+      datasource = 4
+  )) %>%
+  
+  # Join data back with tidal_zone_ts_id metadata
+  ungroup() %>%
+  left_join(tidal_zone_ts_ids, by = "ts_id")
+```
+
+In just a few lines of code, we downloaded the tidal data for each measurement station for the required time period. 👌
+
+The water level is expressed in `mTAW`[^3] (meter above mean sea level). Let's plot the data for a station (here Dendermonde in November 2016) to have a look:
+
+[^3]: TAW means [_Tweede Algemene Waterpassing_](https://nl.wikipedia.org/wiki/Tweede_Algemene_Waterpassing), a reference height for Belgium.
+
+```{r plot_tide_dendermonde, fig.height=3, fig.width=8}
+tidal_data %>% 
+  filter(station_name %in% c("Dendermonde tij/Zeeschelde")) %>%
+  filter(Timestamp > "2016-10-31", Timestamp <= "2016-11-30") %>%
+  ggplot() +
+    geom_line(aes(x = Timestamp, y = Value), color = "#2b8cbe") +
+    scale_x_datetime(date_labels = "%Y-%m-%d", date_breaks = "7 days") +
+    facet_grid(rows = vars(station_name)) +
+    theme_minimal() + ylab("Water level (mTAW)") + xlab("")
+```
+
+We now have all the pieces to verify if Princess Buttercup _was_ surfing the tide back and forth.
+
+### Is Princess Buttercup surfing the tide?
+
+Let's add the tidal data to Princess Buttercup's journey plot we created before. The first step is to join the tidal data with the same distance reference file to know the distance from each tidal station to the sea:
+
+```{r echo = TRUE}
+tidal_data <-
+  tidal_data %>%
+  left_join(
+    distance_from_sea %>% select(station, distance_from_sea, municipality),
+    by = c("station_name" = "station")
+  ) %>%
+  filter(station_name != "Hemiksem tij/Zeeschelde") # Exclude (probably erroneous) data from Hemiksem
+```
+
+To avoid visual clutter, we'll use ridges (from [`ggridges`](https://cran.r-project.org/web/packages/ggridges/vignettes/gallery.html)) to display the tidal data for each station over time:
+
+```{r}
+start_moment <- "2016-11-14"
+end_moment <- "2016-11-22 12:00"
+transmitter_selected <- "A69-1601-52644"
+
+eel_subset <-
+  eel %>% 
+  filter(departure >= start_moment, arrival <= end_moment)
+
+tidal_data_subset <-
+  tidal_data %>% 
+  filter(Timestamp >= start_moment, Timestamp <= end_moment)
+```
+
+```{r plot_track_and_tide, fig.height=8, fig.width=10}
+# Create custom y-axis labels by combining distance and name
+# y_axis_label: reused from previous plot
+
+# Get midpoint date (for positioning arrow to sea)
+midpoint_date <-
+  tidal_data_subset %>%
+  select(Timestamp) %>%
+  pull() %>%
+  median()
+
+# Convert arrival and departure to individual rows (tidy)
+eel_gather <-
+  eel_subset %>%
+  gather(action, datetime, c(arrival, departure))
+
+# Create plot combining eel track with ggridges water levels
+tidal_tracks <-
+  ggplot() +
+  geom_ridgeline(
+    data = tidal_data_subset,
+    aes(x = Timestamp, y = distance_from_sea, height = Value, group = distance_from_sea),
+    scale = 1000,
+    fill = "#9ecae1",
+    color = "#2b8cbe"
+  ) +
+  geom_line(
+    data = eel_gather,
+    aes(x = datetime, y = distance_from_sea),
+    alpha = 1.,
+    color = "#e66101",
+    linetype = "solid",
+    size = 1
+  ) +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 days") +
+  xlab("") +
+  ylab("") +
+  scale_y_continuous(
+    "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
+    breaks = municipalities$distance_from_sea,
+    labels = y_axis_label
+  ) +
+  annotate(
+    "text",
+    x = as_datetime(midpoint_date),
+    y = max(eel_subset$distance_from_sea) * 0.23,
+    colour = "#2b8cbe",
+    label = "Sea",
+    size = 5
+  ) +
+  annotate(
+    "segment",
+    x = as_datetime(midpoint_date),
+    xend = as_datetime(midpoint_date),
+    y = max(eel_subset$distance_from_sea) * 0.2,
+    yend = max(eel_subset$distance_from_sea) * 0.1,
+    arrow = arrow(length = unit(0.5, "cm")),
+    color = "#2b8cbe",
+    size = 0.8
+  ) +
+  theme_minimal() + 
+  theme(
+    panel.grid.minor.y = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text = element_text(size = 10)
+  )
+
+# Create water level plot of Dendermonde
+tide_dendermonde <-
+  ggplot() +
+  geom_line(
+    data = tidal_data_subset %>% filter(station_name == "Dendermonde tij/Zeeschelde"),
+    aes(x = Timestamp, y = Value),
+    size = 1,
+    color = "#2b8cbe"
+  ) +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 days") +
+  ylab("Water level\nDendermonde\n(m TAW)") +
+  theme_minimal() +
+  theme(
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    panel.grid.minor.x = element_blank() # Remove x-label elements
+  )
+
+# Combine both plots to single image
+ggarrange(
+  tide_dendermonde,
+  tidal_tracks,  
+  ncol = 1,
+  nrow = 2,
+  common.legend = TRUE,
+  align = "v",
+  heights = c(1, 5)
+)
+```
+
+Looking at the plot, Princess Buttercup seems to be "lazy" and drift with the tide. Rising water levels push her upstream, while decreasing water levels bring her closer to sea again. On November 22 (see also previous plot), she embarks on her migration for real.
+
+## Conclusion
+
+In this blogpost we used the wateRinfo package to gain some insight in the movement/migration behaviour of an individual eel. We hope the package can support many more research questions and that you [have fun storming the castle](https://www.imdb.com/title/tt0093779/quotes/qt0482745).
+
+- For a more in depth study of eel migration behaviour in response to the tide, see [Verhelst et al. (2018)](https://doi.org/10.1016/j.ecss.2018.08.025).
+- For more info on the package, see [the package website](https://ropensci.github.io/wateRinfo/).
+- For the full code of this blogpost, see [this repository](https://github.com/stijnvanhoey/waterinfo-tidal-eel).
