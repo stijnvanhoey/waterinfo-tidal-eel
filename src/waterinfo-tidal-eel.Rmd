@@ -147,7 +147,8 @@ ggplot() +
   scale_y_continuous(
     "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
     breaks = municipalities$distance_from_sea,
-    labels = y_axis_label
+    labels = y_axis_label,
+    limits = c(0, NA)
   ) +
   annotate(
     "text",
@@ -333,7 +334,8 @@ tidal_tracks <-
   scale_y_continuous(
     "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
     breaks = municipalities$distance_from_sea,
-    labels = y_axis_label
+    labels = y_axis_label,
+    limits = c(0, NA)
   ) +
   annotate(
     "text",
