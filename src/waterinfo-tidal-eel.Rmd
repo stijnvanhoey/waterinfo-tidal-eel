@@ -21,8 +21,8 @@ tags:
   - movement-data
   - acoustic-telemetry
 output:
-#  html_document:
-#    df_print: kable
+  #html_document:
+  #  df_print: kable
   md_document:
     df_print: kable
     preserve_yaml: true
@@ -71,16 +71,21 @@ head(eel)
 
 Using the `latitude`, `longitude` and total `residencetime` for each station, we can map where Princess Buttercup likes to hang out:
 
-```{r map_residence_time}
-eel %>% 
+```{r map_residence_time, fig.height=6, fig.width=6}
+residence <- eel %>% 
   group_by(receiver, receiver, latitude, longitude, transmitter) %>%
-  summarize(total_residence = sum(residencetime)) %>%
-  leaflet(width = 600, height = 400) %>%
-  addTiles() %>%  
-  addCircleMarkers(~longitude, ~latitude,
-                   popup = ~receiver,
-                   color = "#e66101", radius = ~total_residence/3600, 
-                   stroke = FALSE, fillOpacity = 0.6)
+  summarize(total_residence = sum(residencetime))
+
+library(ggmap)
+extent <- c(left = 3.3, bottom = 50.9, right = 4.5, top = 51.51)
+map <- get_stamenmap(bbox = extent, zoom = 10, maptype = "toner")
+
+ggmap(map) +
+    geom_point(aes(x = longitude, y = latitude, 
+                   size = total_residence), 
+               data = residence, color = "#e66101") +
+    guides(size = FALSE) + xlab("") + ylab("") +
+    scale_radius("total_residence")
 ```
 
 ### Moving up and down the Scheldt river
@@ -284,7 +289,7 @@ tidal_data_subset <-
   filter(Timestamp >= start_moment, Timestamp <= end_moment)
 ```
 
-```{r plot_track_and_tide, fig.height=8, fig.width=10}
+```{r plot_track_and_tide, fig.height=8, fig.width=10, message=FALSE, warning=FALSE}
 # Create custom y-axis labels by combining distance and name
 # y_axis_label: reused from previous plot
 
@@ -305,7 +310,8 @@ tidal_tracks <-
   ggplot() +
   geom_ridgeline(
     data = tidal_data_subset,
-    aes(x = Timestamp, y = distance_from_sea, height = Value, group = distance_from_sea),
+    aes(x = Timestamp, y = distance_from_sea, 
+        height = Value, group = distance_from_sea),
     scale = 1000,
     fill = "#9ecae1",
     color = "#2b8cbe"
