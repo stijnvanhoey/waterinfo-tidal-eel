@@ -92,7 +92,7 @@ ggmap(map) +
 
 To get a better sense of her journey along the river, we add a `distance_to_sea` (in meters) for the stations, by joining the tracking data with a [distance reference file](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/data/distance_from_sea.csv)[^1]. We can now plot her movement over time and distance:
 
-[^1]: To represent the data along a straight line (y-axis), we calculated the distance along the river from each station to a reference station close to the sea (`ws-DL7`), using a `costDistance` function. See [this script](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/src/stations_distances.ipynb) for more the details on the calculation.
+[^1]: To represent the data along a straight line (y-axis), we calculated the distance along the river from each station to a reference station close to the sea (`ws-TRAWL`), using a `costDistance` function. See [this script](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/src/stations_distances.ipynb) for more the details on the calculation.
 
 ```{r}
 # Load reference file
@@ -108,7 +108,7 @@ municipalities <-
   distance_from_sea %>%
   mutate(municipality = case_when(
     !is.na(municipality) ~ municipality,
-    station == "ws-DL7" ~ "Reference station"
+    station == "ws-TRAWL" ~ "Reference station"
   )) %>%
   filter(!is.na(municipality)) %>%
   select(station, municipality, distance_from_sea) %>%
@@ -391,7 +391,7 @@ ggarrange(
 
 Looking at the plot, Princess Buttercup seems to be "lazy" and drift with the tide. Rising water levels push her upstream, while decreasing water levels bring her closer to sea again. On November 22 (see also previous plot), she embarks on her migration for real.
 
-## Conclusion
+### Conclusion
 
 In this blogpost we used the wateRinfo package to gain some insight in the movement/migration behaviour of an individual eel. We hope the package can support many more research questions and that you [have fun storming the castle](https://www.imdb.com/title/tt0093779/quotes/qt0482745).
 

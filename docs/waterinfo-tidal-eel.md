@@ -164,8 +164,7 @@ To avoid visual clutter, we'll use ridges (from [`ggridges`](https://cran.r-proj
 
 Looking at the plot, Princess Buttercup seems to be "lazy" and drift with the tide. Rising water levels push her upstream, while decreasing water levels bring her closer to sea again. On November 22 (see also previous plot), she embarks on her migration for real.
 
-Conclusion
-----------
+### Conclusion
 
 In this blogpost we used the wateRinfo package to gain some insight in the movement/migration behaviour of an individual eel. We hope the package can support many more research questions and that you [have fun storming the castle](https://www.imdb.com/title/tt0093779/quotes/qt0482745).
 
@@ -173,7 +172,7 @@ In this blogpost we used the wateRinfo package to gain some insight in the movem
 -   For more info on the package, see [the package website](https://ropensci.github.io/wateRinfo/).
 -   For the full code of this blogpost, see [this repository](https://github.com/stijnvanhoey/waterinfo-tidal-eel).
 
-[1] To represent the data along a straight line (y-axis), we calculated the distance along the river from each station to a reference station close to the sea (`ws-DL7`), using a `costDistance` function. See [this script](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/src/stations_distances.ipynb) for more the details on the calculation.
+[1] To represent the data along a straight line (y-axis), we calculated the distance along the river from each station to a reference station close to the sea (`ws-TRAWL`), using a `costDistance` function. See [this script](https://github.com/stijnvanhoey/waterinfo-tidal-eel/blob/master/src/stations_distances.ipynb) for more the details on the calculation.
 
 [2] The Scheldt is under tidal influence from its river mouth all the way to Ghent (160km upstream) where it is stopped by sluices. The tide goes much further than the freshwater-saltwater boundary of the river.
 
