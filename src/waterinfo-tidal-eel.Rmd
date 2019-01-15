@@ -133,17 +133,22 @@ eel_gather <-
   gather(action, datetime, c(arrival, departure))
 
 # Create plot
-ggplot(eel_gather,
-  aes(x = datetime, y = distance_from_sea, color = eel_name)) +
+ggplot() +
+  geom_line(
+    data = eel_gather,
+    aes(x = datetime, y = distance_from_sea),
+    alpha = 1.,
+    color = "#e66101",
+    linetype = "solid",
+    size = 0.8
+  ) + 
   xlab("") +
   ylab("") +
-  geom_line(alpha = 1., color = "#e66101", linetype = "solid", size = 0.8) +
   scale_y_continuous(
     "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
     breaks = municipalities$distance_from_sea,
     labels = y_axis_label
   ) +
-  scale_color_manual(values = c("#e66101", "#5e3c99"), guide = guide_legend()) +
   annotate(
     "text",
     x = as_datetime(midpoint_date),
@@ -164,16 +169,10 @@ ggplot(eel_gather,
   ) +
   theme_minimal() +
   theme(
-    legend.position = c(.98, .99),
-    legend.justification = c("right", "top"),
-    legend.box.just = "right",
-    legend.margin = margin(6, 6, 6, 6),
-    legend.background = element_rect(fill = "white", color = "transparent"),
     panel.grid.minor.y = element_blank(),
     panel.grid.minor.x = element_blank(),
     axis.text = element_text(size = 10)
-  ) +
-  guides(color = guide_legend(title = "Eel"))
+  )
 ```
 
 Princess Buttercup's signal was picked up by receivers in Merelbeke (near Ghent) shortly after she was captured and released there on October 11. She resided in a 40 km stretch of the river (between Wetteren and Sint-Amands) for about a month before migrating towards the sea and starting the long journey towards the Sargasso Sea. The periodic movement pattern up and down the river during the second half of November is of particular interest: it looks like tidal frequency[^2]. It would be interesting to compare the movement pattern with real water level data from the Scheldt river... which is where our wateRinfo package comes in.
@@ -310,8 +309,12 @@ tidal_tracks <-
   ggplot() +
   geom_ridgeline(
     data = tidal_data_subset,
-    aes(x = Timestamp, y = distance_from_sea, 
-        height = Value, group = distance_from_sea),
+    aes(
+      x = Timestamp,
+      y = distance_from_sea,
+      height = Value,
+      group = distance_from_sea
+    ),
     scale = 1000,
     fill = "#9ecae1",
     color = "#2b8cbe"
@@ -324,9 +327,9 @@ tidal_tracks <-
     linetype = "solid",
     size = 1
   ) +
-  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 days") +
   xlab("") +
   ylab("") +
+  scale_x_datetime(date_labels = "%d %b", date_breaks = "1 days") +
   scale_y_continuous(
     "Municipalities along the Scheldt river with\ndistance (km) to reference station at sea",
     breaks = municipalities$distance_from_sea,
